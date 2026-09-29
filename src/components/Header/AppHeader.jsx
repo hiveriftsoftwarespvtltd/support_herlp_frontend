@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { TopContactBar } from "./TopContactBar";
 import { MainNavigationBar } from "./MainNavigationBar";
 import { SubHeaderAnnouncement } from "./SubHeaderAnnouncement";
 import { MobileNavigationDrawer } from "./MobileNavigationDrawer";
 
 export function AppHeader() {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -23,6 +25,10 @@ export function AppHeader() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   return (
     <header className="w-full relative z-40">

@@ -1,7 +1,8 @@
 import React from "react";
+import { ContactUsForm } from "@/components/Common/ContactUsForm";
 import { PageHeroBanner } from "@/components/Common/PageHeroBanner";
 import { contactInfo } from "@/data/navigationData";
-import { Phone, Mail, MapPin, Clock, Send, ShieldCheck } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, ShieldCheck } from "lucide-react";
 
 export const metadata = {
   title: "Contact Us – Support Help",
@@ -99,86 +100,8 @@ export default function ContactUsPage() {
           </div>
 
           {/* Right: Message Form */}
-          <div className="lg:col-span-7 bg-white p-8 sm:p-10 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-            <h3 className="text-xl font-bold font-poppins text-gray-900 border-b border-gray-100 pb-3">
-              Send Us a Message
-            </h3>
-
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 font-poppins uppercase tracking-wider mb-1.5">
-                    Your Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. John Doe"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded focus:border-[#368b82] focus:ring-1 focus:ring-[#368b82] outline-hidden text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 font-poppins uppercase tracking-wider mb-1.5">
-                    Email Address *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="e.g. john@yourcompany.com"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded focus:border-[#368b82] focus:ring-1 focus:ring-[#368b82] outline-hidden text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 font-poppins uppercase tracking-wider mb-1.5">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded focus:border-[#368b82] focus:ring-1 focus:ring-[#368b82] outline-hidden text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 font-poppins uppercase tracking-wider mb-1.5">
-                    Software Preference
-                  </label>
-                  <select className="w-full px-4 py-2.5 border border-gray-300 rounded focus:border-[#368b82] focus:ring-1 focus:ring-[#368b82] outline-hidden text-sm bg-white">
-                    <option value="quickbooks">QuickBooks (Online / Desktop)</option>
-                    <option value="xero">Xero</option>
-                    <option value="zoho">Zoho Books</option>
-                    <option value="sage">Sage</option>
-                    <option value="myob">MYOB</option>
-                    <option value="epicor">Epicor</option>
-                    <option value="other">Other / Not Sure</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 font-poppins uppercase tracking-wider mb-1.5">
-                  How Can We Help You? *
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Describe your current bookkeeping challenges, catchup requirements, or questions..."
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded focus:border-[#368b82] focus:ring-1 focus:ring-[#368b82] outline-hidden text-sm"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="w-full bg-[#368b82] hover:bg-[#286b64] text-white py-3 rounded font-bold font-poppins uppercase tracking-wider text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow transition-all"
-              >
-                <Send className="w-4 h-4" />
-                <span>Submit Inquiry</span>
-              </button>
-            </form>
+          <div className="lg:col-span-7">
+            <ContactUsForm />
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { blogPosts } from "@/data/blogData";
+import { blogPosts as fallbackBlogPosts } from "@/data/blogData";
 import { PageHeroBanner } from "@/components/Common/PageHeroBanner";
 import { IndustryCoffeeSection } from "@/components/Common/IndustryCoffeeSection";
+import { API_BASE_URL } from "@/config";
 import {
   Calendar,
   User,
@@ -20,6 +21,54 @@ export const metadata = {
     "Explore authoritative guides, tax compliance updates, cloud software workflows, and bookkeeping strategies written by certified CPAs and accounting professionals.",
 };
 
+export const dynamic = "force-dynamic";
+
+async function getLiveBlogs() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blogs?limit=50`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data?.items && json.data.items.length > 0) {
+        return json.data.items.map((item) => ({
+          _id: item._id,
+          slug: item.slug,
+          title: item.title,
+          category: item.category,
+          date: item.publishedAt
+            ? new Date(item.publishedAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "Recently",
+          readTime: item.readTime || "5 min read",
+          author:
+            typeof item.author === "string"
+              ? item.author
+              : item.author?.name || "Support Help",
+          authorRole:
+            item.authorRole ||
+            (typeof item.author === "object" ? item.author?.role : "") ||
+            "Certified Cloud Accounting Specialist",
+          image: item.coverImage || "/blog/zoho-books-used-for.png",
+          featured: !!item.featured,
+          excerpt: item.excerpt,
+          tags: Array.isArray(item.tags)
+            ? item.tags
+            : typeof item.tags === "string"
+            ? item.tags.split(",").map((t) => t.trim())
+            : [],
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch blogs from API in BlogHubPage, falling back:", err.message);
+  }
+  return fallbackBlogPosts;
+}
+
 const categories = [
   "All Articles",
   "Cloud Accounting",
@@ -27,11 +76,13 @@ const categories = [
   "Bookkeeping",
   "Cash Flow",
   "Data Migration",
+  "Zoho Books",
 ];
 
-export default function BlogHubPage() {
-  const featuredPost = blogPosts.find((p) => p.featured) || blogPosts[0];
-  const regularPosts = blogPosts.filter((p) => p.slug !== featuredPost.slug);
+export default async function BlogHubPage() {
+  const blogs = await getLiveBlogs();
+  const featuredPost = blogs.find((p) => p.featured) || blogs[0];
+  const regularPosts = blogs.filter((p) => p.slug !== featuredPost?.slug);
 
   return (
     <main className="w-full bg-[#fafbfc] font-poppins text-[#333333]">
@@ -63,7 +114,7 @@ export default function BlogHubPage() {
 
           <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
             <BookOpen className="w-4 h-4 text-[#368b82]" />
-            <span>Showing {blogPosts.length} articles</span>
+            <span>Showing {blogs.length} articles</span>
           </div>
         </div>
 
@@ -124,7 +175,7 @@ export default function BlogHubPage() {
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {featuredPost.tags.map((t, idx) => (
+                  {featuredPost.tags?.map((t, idx) => (
                     <span
                       key={idx}
                       className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg"
@@ -209,7 +260,7 @@ export default function BlogHubPage() {
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {post.tags.map((tag, tIdx) => (
+                      {post.tags?.map((tag, tIdx) => (
                         <span
                           key={tIdx}
                           className="text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-md"

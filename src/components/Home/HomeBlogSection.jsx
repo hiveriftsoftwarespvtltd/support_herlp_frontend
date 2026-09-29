@@ -1,16 +1,51 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { blogPosts } from "@/data/blogData";
-import { Calendar, User, ArrowRight, BookOpen } from "lucide-react";
+import { blogPosts as fallbackPosts } from "@/data/blogData";
+import { blogApi } from "@/api";
+import { Calendar, User, ArrowRight, Sparkles } from "lucide-react";
 
 export function HomeBlogSection() {
-  const posts = blogPosts.slice(0, 3);
+  const [posts, setPosts] = useState(fallbackPosts.slice(0, 3));
+
+  // Fetch live latest articles created from Admin in MongoDB
+  useEffect(() => {
+    async function loadLatestBlogs() {
+      try {
+        const res = await blogApi.getBlogs({ limit: 3 });
+        if (res?.data?.items && res.data.items.length > 0) {
+          const formatted = res.data.items.map((item) => ({
+            slug: item.slug,
+            title: item.title,
+            category: item.category,
+            date: item.publishedAt
+              ? new Date(item.publishedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "Recently",
+            author:
+              typeof item.author === "string"
+                ? item.author
+                : item.author?.name || "Support Help",
+            image: item.coverImage || "/blog/zoho-books-used-for.png",
+            excerpt: item.excerpt,
+            featured: !!item.featured,
+          }));
+          setPosts(formatted);
+        }
+      } catch (err) {
+        console.warn("Could not load home blogs from API, using fallback:", err.message);
+      }
+    }
+    loadLatestBlogs();
+  }, []);
 
   return (
-    <section className="py-16 lg:py-24 bg-gray-50/60 border-t border-gray-200 relative overflow-hidden">
+    <section className="py-16 lg:py-24 bg-gray-50/60 border-t border-gray-200 relative overflow-hidden font-poppins">
       {/* Background Subtle Gradient Accents */}
       <div className="absolute top-1/2 right-0 w-80 h-80 bg-[#368b82]/5 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
 
@@ -39,11 +74,11 @@ export function HomeBlogSection() {
           </Link>
         </div>
 
-        {/* 3 Blog Cards with Live Interactive Hover Effects */}
+        {/* 3 Live Blog Cards from MongoDB */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {posts.map((post, idx) => (
             <Link
-              key={idx}
+              key={post.slug || idx}
               href={`/blog/${post.slug}`}
               className="group relative bg-white border border-gray-200/90 rounded-3xl overflow-hidden shadow-xs hover:shadow-[0_22px_45px_-12px_rgba(54,139,130,0.22)] hover:border-[#368b82] hover:-translate-y-2 transition-all duration-300 flex flex-col justify-between cursor-pointer"
             >
@@ -65,10 +100,16 @@ export function HomeBlogSection() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                   {/* Category tag overlay on top-left */}
-                  <div className="absolute top-4 left-4 z-10">
+                  <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5">
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-white/95 backdrop-blur-md text-[#368b82] rounded-full font-bold font-poppins text-xs uppercase tracking-wider shadow-sm">
                       {post.category}
                     </span>
+                    {post.featured && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/90 backdrop-blur-md text-white rounded-full font-bold font-poppins text-[10px] uppercase tracking-wider shadow-sm">
+                        <Sparkles className="w-3 h-3" />
+                        Featured
+                      </span>
+                    )}
                   </div>
 
                   {/* Number badge on top-right */}
@@ -90,7 +131,7 @@ export function HomeBlogSection() {
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-base sm:text-lg font-poppins text-gray-900 group-hover:text-[#368b82] transition-colors leading-snug">
+                  <h3 className="font-bold text-base sm:text-lg font-poppins text-gray-900 group-hover:text-[#368b82] transition-colors leading-snug line-clamp-2">
                     {post.title}
                   </h3>
 

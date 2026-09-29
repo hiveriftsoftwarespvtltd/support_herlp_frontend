@@ -12,9 +12,29 @@ import {
   aboutUsData,
   staticNavLinks,
 } from "@/data/navigationData";
+import { softwareApi } from "@/api";
 
 export function MobileNavigationDrawer({ isOpen, onClose }) {
   const [openSection, setOpenSection] = useState(null);
+  const [softwares, setSoftwares] = useState(softwareData);
+
+  React.useEffect(() => {
+    async function loadSoftwares() {
+      try {
+        const res = await softwareApi.getSoftwares({ isPublished: true });
+        if (res?.data && res.data.length > 0) {
+          setSoftwares(
+            res.data.map((item) => ({
+              name: item.name,
+              href: `/software-expertise/${(item.slug || "").replace(/^\/+/, "")}`,
+              desc: item.desc || `Certified ${item.name} Bookkeeping`,
+            }))
+          );
+        }
+      } catch (err) {}
+    }
+    loadSoftwares();
+  }, []);
 
   if (!isOpen) return null;
 
@@ -120,7 +140,7 @@ export function MobileNavigationDrawer({ isOpen, onClose }) {
             </button>
             {openSection === "software" && (
               <div className="bg-gray-50/80 px-5 py-2 space-y-1 text-[14px]">
-                {softwareData.map((item, idx) => (
+                {softwares.map((item, idx) => (
                   <Link
                     key={idx}
                     href={item.href}

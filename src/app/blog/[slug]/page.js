@@ -2,10 +2,11 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { blogPosts } from "@/data/blogData";
+import { blogPosts as fallbackBlogPosts } from "@/data/blogData";
 import { contactInfo } from "@/data/navigationData";
 import { PageHeroBanner } from "@/components/Common/PageHeroBanner";
 import { IndustryCoffeeSection } from "@/components/Common/IndustryCoffeeSection";
+import { API_BASE_URL } from "@/config";
 import {
   Calendar,
   Clock,
@@ -19,15 +20,67 @@ import {
   Sparkles,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+
+async function fetchBlogBySlug(slug) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/blogs/${slug}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data) {
+        const item = json.data;
+        return {
+          slug: item.slug,
+          title: item.title,
+          category: item.category,
+          date: item.publishedAt
+            ? new Date(item.publishedAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "Recently",
+          readTime: item.readTime || "5 min read",
+          author:
+            typeof item.author === "string"
+              ? item.author
+              : item.author?.name || "Support Help",
+          authorRole:
+            item.authorRole ||
+            (typeof item.author === "object" ? item.author?.role : "") ||
+            "Certified Cloud Accounting Specialist",
+          image: item.coverImage || "/blog/zoho-books-used-for.png",
+          featured: !!item.featured,
+          excerpt: item.excerpt,
+          tags: Array.isArray(item.tags)
+            ? item.tags
+            : typeof item.tags === "string"
+            ? item.tags.split(",").map((t) => t.trim())
+            : [],
+          content: Array.isArray(item.content)
+            ? item.content
+            : [{ type: "paragraph", text: String(item.content || "") }],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch blog detail by slug from API:", err.message);
+  }
+  return fallbackBlogPosts.find((p) => p.slug === slug) || null;
+}
+
 export function generateStaticParams() {
-  return blogPosts.map((post) => ({
+  return fallbackBlogPosts.map((post) => ({
     slug: post.slug,
   }));
 }
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = await fetchBlogBySlug(slug);
 
   if (!post) {
     return {
@@ -44,14 +97,14 @@ export async function generateMetadata({ params }) {
 
 export default async function BlogPostDetailPage({ params }) {
   const { slug } = await params;
-  const post = blogPosts.find((p) => p.slug === slug);
+  const post = await fetchBlogBySlug(slug);
 
   if (!post) {
     notFound();
   }
 
   // Related posts (excluding current post)
-  const relatedPosts = blogPosts.filter((p) => p.slug !== slug).slice(0, 3);
+  const relatedPosts = fallbackBlogPosts.filter((p) => p.slug !== slug).slice(0, 3);
 
   return (
     <main className="w-full bg-[#fafbfc] font-poppins text-[#333333]">
@@ -148,7 +201,7 @@ export default async function BlogPostDetailPage({ params }) {
                 if (block.type === "list") {
                   return (
                     <ul key={idx} className="space-y-3 py-2">
-                      {block.items.map((item, itemIdx) => {
+                      {block.items?.map((item, itemIdx) => {
                         const parts = item.split(":");
                         const hasColon = parts.length > 1;
                         return (
@@ -194,7 +247,7 @@ export default async function BlogPostDetailPage({ params }) {
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-1">
                   Article Tags:
                 </span>
-                {post.tags.map((tag, tIdx) => (
+                {post.tags?.map((tag, tIdx) => (
                   <span
                     key={tIdx}
                     className="text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-[#edf7f6] hover:text-[#368b82] px-3 py-1 rounded-lg transition-colors cursor-pointer"

@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { inquiryApi } from "@/api";
 
 export function IndustryCoffeeSection({ industryName = "" }) {
   const [formData, setFormData] = useState({
@@ -16,12 +17,31 @@ export function IndustryCoffeeSection({ industryName = "" }) {
     description: "",
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const sourcePath = typeof window !== "undefined" ? window.location.pathname : "";
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const serviceVal = formData.service !== "Select services" && formData.service ? formData.service : "Industry Consultation";
+
+      await inquiryApi.submitInquiry({
+        fullName,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        company: formData.company.trim(),
+        service: serviceVal,
+        softwarePreference: formData.software.trim(),
+        message: formData.description.trim() || `Inquiry submitted for ${industryName || "accounting services"}`,
+        sourcePage: sourcePath || `/industry/${industryName || "consultation"}`,
+      });
+
+      setSubmitted(true);
       setFormData({
         firstName: "",
         lastName: "",
@@ -32,7 +52,16 @@ export function IndustryCoffeeSection({ industryName = "" }) {
         software: "",
         description: "",
       });
-    }, 5000);
+
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 7000);
+    } catch (err) {
+      console.error("Inquiry submission error:", err);
+      setErrorMessage(err.message || "Failed to submit inquiry. Please check your network and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -198,13 +227,29 @@ export function IndustryCoffeeSection({ industryName = "" }) {
                   />
                 </div>
 
+                {/* Error Banner */}
+                {errorMessage && (
+                  <div className="bg-red-500/20 border border-red-300 text-white p-3.5 rounded-xl text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-200 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
                 {/* Submit Button */}
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-9 py-3.5 rounded-xl bg-white hover:bg-gray-100 text-[#368b82] font-black text-sm uppercase tracking-wider font-poppins transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 cursor-pointer"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto px-9 py-3.5 rounded-xl bg-white hover:bg-gray-100 disabled:opacity-75 disabled:cursor-not-allowed text-[#368b82] font-black text-sm uppercase tracking-wider font-poppins transition-all shadow-md hover:shadow-2xl hover:-translate-y-0.5 cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Submit Request
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#368b82]" />
+                        <span>Sending Request...</span>
+                      </>
+                    ) : (
+                      <span>Submit Request</span>
+                    )}
                   </button>
                 </div>
               </form>

@@ -3,10 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { contactInfo, softwareData } from "@/data/navigationData";
 import { MapPin, Phone, Mail, ArrowRight, ShieldCheck } from "lucide-react";
 
 export function AppFooter() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
   const coreServices = [
     { name: "Bookkeeping Services", href: "/services/bookkeeping" },
     { name: "Accounting Services", href: "/services/accounting" },

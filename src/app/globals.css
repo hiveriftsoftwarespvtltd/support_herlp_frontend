@@ -14,6 +14,14 @@
   --font-lato: var(--font-lato);
 }
 
+@utility font-poppins {
+  font-family: var(--font-poppins), 'Poppins', Arial, sans-serif;
+}
+
+@utility font-lato {
+  font-family: var(--font-lato), 'Lato', Arial, sans-serif;
+}
+
 .site-container {
   width: 100%;
   max-width: 1400px;

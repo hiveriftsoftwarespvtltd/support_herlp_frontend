@@ -3,15 +3,52 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Send, CheckCircle2, ShieldCheck, Lock, Sparkles } from "lucide-react";
+import { Send, CheckCircle2, ShieldCheck, Lock, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { inquiryApi } from "@/api";
 
 export function HomeContactSection() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    setTimeout(() => setIsSubmitted(false), 5000);
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const firstName = formData.get("firstName")?.toString().trim() || "";
+    const lastName = formData.get("lastName")?.toString().trim() || "";
+    const email = formData.get("email")?.toString().trim() || "";
+    const phone = formData.get("phone")?.toString().trim() || "";
+    const company = formData.get("company")?.toString().trim() || "";
+    const service = formData.get("service")?.toString().trim() || "General Consultation";
+    const softwarePreference = formData.get("software")?.toString().trim() || "";
+    const message = formData.get("message")?.toString().trim() || "";
+
+    try {
+      await inquiryApi.submitInquiry({
+        fullName: `${firstName} ${lastName}`.trim(),
+        email,
+        phone,
+        company,
+        service,
+        softwarePreference,
+        message,
+        sourcePage: "/",
+      });
+
+      setIsSubmitted(true);
+      form.reset();
+      setTimeout(() => setIsSubmitted(false), 7000);
+    } catch (err) {
+      console.error("Home contact submit error:", err);
+      setErrorMessage(err.message || "Failed to submit request. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const certifications = [
@@ -84,10 +121,18 @@ export function HomeContactSection() {
               </div>
             )}
 
+            {errorMessage && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2.5 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <input
+                    name="firstName"
                     type="text"
                     required
                     placeholder="First Name *"
@@ -96,6 +141,7 @@ export function HomeContactSection() {
                 </div>
                 <div className="space-y-1">
                   <input
+                    name="lastName"
                     type="text"
                     required
                     placeholder="Last Name *"
@@ -107,6 +153,7 @@ export function HomeContactSection() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <input
+                    name="email"
                     type="email"
                     required
                     placeholder="Work Email *"
@@ -115,6 +162,7 @@ export function HomeContactSection() {
                 </div>
                 <div className="space-y-1">
                   <input
+                    name="phone"
                     type="tel"
                     required
                     placeholder="Phone Number *"
@@ -125,6 +173,7 @@ export function HomeContactSection() {
 
               <div>
                 <input
+                  name="company"
                   type="text"
                   required
                   placeholder="Company Name *"
@@ -134,6 +183,7 @@ export function HomeContactSection() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <select
+                  name="service"
                   required
                   className="w-full px-4 py-3 bg-gray-50/70 hover:bg-white border border-gray-200 focus:border-[#368b82] focus:ring-2 focus:ring-[#368b82]/20 rounded-xl outline-hidden text-sm font-poppins text-gray-700 transition-all duration-200"
                 >
@@ -148,6 +198,7 @@ export function HomeContactSection() {
                 </select>
 
                 <input
+                  name="software"
                   type="text"
                   required
                   placeholder="Current Software (e.g. QuickBooks, Xero) *"
@@ -157,6 +208,7 @@ export function HomeContactSection() {
 
               <div>
                 <textarea
+                  name="message"
                   rows={4}
                   required
                   placeholder="Describe your requirements or specific challenge... *"
@@ -166,10 +218,20 @@ export function HomeContactSection() {
 
               <button
                 type="submit"
-                className="group w-full sm:w-auto bg-[#368b82] hover:bg-[#286b64] text-white px-8 py-3.5 rounded-xl font-bold font-poppins uppercase tracking-wider text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                disabled={isSubmitting}
+                className="group w-full sm:w-auto bg-[#368b82] hover:bg-[#286b64] disabled:opacity-75 disabled:cursor-not-allowed text-white px-8 py-3.5 rounded-xl font-bold font-poppins uppercase tracking-wider text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
               >
-                <span>Request Free Consultation</span>
-                <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span>Submitting Request...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Request Free Consultation</span>
+                    <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-0.5 transition-transform" />
+                  </>
+                )}
               </button>
             </form>
           </div>
