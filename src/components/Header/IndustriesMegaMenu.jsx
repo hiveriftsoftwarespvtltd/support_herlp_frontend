@@ -1,10 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { industriesData } from "@/data/navigationData";
+import { industriesData as fallbackIndustries } from "@/data/navigationData";
+import { serviceApi } from "@/api";
 
 export function IndustriesMegaMenu({ isOpen, onClose }) {
+  const [columns, setColumns] = useState(fallbackIndustries);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadIndustries() {
+      try {
+        const res = await serviceApi.getServices({
+          category: "Industry Services",
+          isPublished: true,
+        });
+
+        if (res?.data && res.data.length > 0 && isMounted) {
+          const items = res.data.map((item) => ({
+            name: item.title,
+            href: `/industry/${(item.slug || "").replace(/^\/+/, "")}`,
+          }));
+
+          const colSize = Math.ceil(items.length / 3);
+          setColumns([
+            { colTitle: "Part 1", items: items.slice(0, colSize) },
+            { colTitle: "Part 2", items: items.slice(colSize, colSize * 2) },
+            { colTitle: "Part 3", items: items.slice(colSize * 2) },
+          ]);
+        }
+      } catch (err) {
+        // Fallback remains active
+      }
+    }
+
+    loadIndustries();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -16,9 +52,9 @@ export function IndustriesMegaMenu({ isOpen, onClose }) {
       }}
     >
       <div className="p-6 md:p-8">
-        {/* 3 Column Grid (21 Industries) */}
+        {/* 3 Column Grid (Dynamic Industries) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-1">
-          {industriesData.map((col, colIdx) => (
+          {columns.map((col, colIdx) => (
             <div key={colIdx} className="flex flex-col space-y-0.5">
               {col.items.map((item, itemIdx) => (
                 <Link

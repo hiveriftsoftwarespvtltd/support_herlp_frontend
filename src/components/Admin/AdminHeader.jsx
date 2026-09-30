@@ -12,6 +12,8 @@ export function AdminHeader({ activeTab, onOpenCreateModal }) {
         return "Blog Articles Management";
       case "software":
         return "Software Expertise Management";
+      case "services":
+        return "Services Management";
       case "inquiries":
         return "Client Inquiries & Contact Leads";
       case "consultations":
@@ -39,13 +41,19 @@ export function AdminHeader({ activeTab, onOpenCreateModal }) {
       </div>
 
       <div className="flex items-center gap-3">
-        {(activeTab === "blog" || activeTab === "software") && (
+        {(activeTab === "blog" || activeTab === "software" || activeTab === "services") && (
           <button
             onClick={onOpenCreateModal}
             className="bg-[#368b82] hover:bg-[#286b64] active:scale-[0.99] text-white px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold font-poppins uppercase tracking-wider flex items-center gap-2 shadow-sm shadow-[#368b82]/25 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{activeTab === "software" ? "New Software" : "New Article"}</span>
+            <span>
+              {activeTab === "services"
+                ? "New Service"
+                : activeTab === "software"
+                ? "New Software"
+                : "New Article"}
+            </span>
           </button>
         )}
 

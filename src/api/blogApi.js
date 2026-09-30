@@ -51,6 +51,13 @@ export const blogApi = {
   deleteBlog: async (id) => {
     return apiClient.delete(`/blogs/${id}`);
   },
+
+  /**
+   * Get SEO sitemap data for published blogs
+   */
+  getSitemapBlogs: async () => {
+    return apiClient.get('/blogs/seo/sitemap');
+  },
 };
 
 export default blogApi;

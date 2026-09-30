@@ -4,6 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { industriesData, contactInfo } from "@/data/navigationData";
 import allIndustriesData from "@/data/allIndustriesData.json";
+import { API_BASE_URL } from "@/config";
 import { PageHeroBanner } from "@/components/Common/PageHeroBanner";
 import { IndustryCoffeeSection } from "@/components/Common/IndustryCoffeeSection";
 import { ArrowRight, CheckCircle2, Phone, Calendar } from "lucide-react";
@@ -27,9 +28,83 @@ function getIndustryInfo(slug) {
   };
 }
 
+async function getIndustryData(slug) {
+  const cleanSlug = (slug || "").replace(/^\/+/, "").toLowerCase();
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/services/${cleanSlug}`, {
+      next: { revalidate: 30 },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data) {
+        const item = json.data;
+        return {
+          h1: item.heroTitle || item.title?.toUpperCase(),
+          intro: Array.isArray(item.introParagraphs)
+            ? item.introParagraphs
+            : typeof item.introParagraphs === "string"
+            ? [item.introParagraphs]
+            : [],
+          servicesHeading: item.solutionsTitle,
+          leftItems: item.leftCol?.map((x) => ({
+            title: x.title,
+            description: x.desc || x.description,
+          })),
+          rightItems: item.rightCol?.map((x) => ({
+            title: x.title,
+            description: x.desc || x.description,
+          })),
+          section1: {
+            title: item.showcase1Title,
+            paragraphs: item.showcase1Description
+              ? [item.showcase1Description]
+              : [],
+            image: item.showcase1Image,
+          },
+          section2: {
+            title: item.showcase2Title,
+            paragraphs: Array.isArray(item.showcase2Paragraphs)
+              ? item.showcase2Paragraphs
+              : typeof item.showcase2Paragraphs === "string"
+              ? [item.showcase2Paragraphs]
+              : [],
+            image: item.showcase2Image,
+          },
+          metaTitle: item.metaTitle,
+          metaDescription: item.metaDescription,
+        };
+      }
+    }
+  } catch (err) {}
+
+  return allIndustriesData[cleanSlug] || null;
+}
+
+async function getAllIndustriesList() {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/services?category=Industry+Services&isPublished=true`,
+      { next: { revalidate: 60 } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.data && json.data.length > 0) {
+        return json.data.map((item) => ({
+          name: item.title,
+          href: `/industry/${item.slug}`,
+        }));
+      }
+    }
+  } catch (err) {}
+
+  return industriesData.flatMap((col) => col.items);
+}
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const industryItem = allIndustriesData[slug];
+  const cleanSlug = (slug || "").replace(/^\/+/, "").toLowerCase();
+  const industryItem = await getIndustryData(cleanSlug);
 
   if (industryItem) {
     return {
@@ -40,7 +115,7 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const { name } = getIndustryInfo(slug);
+  const { name } = getIndustryInfo(cleanSlug);
   return {
     title: `${name} Accounting & Bookkeeping Services – Support Help`,
     description: `Specialized bookkeeping, tax planning, and accounting services for ${name} businesses. Certified experts in USA and Australia.`,
@@ -49,14 +124,15 @@ export async function generateMetadata({ params }) {
 
 export default async function IndustryDetailPage({ params }) {
   const { slug } = await params;
-  const industry = getIndustryInfo(slug);
-  const data = allIndustriesData[slug];
+  const cleanSlug = (slug || "").replace(/^\/+/, "").toLowerCase();
+  const industry = getIndustryInfo(cleanSlug);
+  const data = await getIndustryData(cleanSlug);
 
   if (!data) {
     notFound();
   }
 
-  const allIndustries = industriesData.flatMap((col) => col.items);
+  const allIndustries = await getAllIndustriesList();
 
   return (
     <div className="w-full pb-16 bg-[#fafbfc]">
@@ -123,7 +199,6 @@ export default async function IndustryDetailPage({ params }) {
                         key={idx}
                         className="group relative bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs hover:shadow-[0_18px_36px_-8px_rgba(54,139,130,0.2)] hover:border-[#368b82] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
                       >
-                        {/* Ambient corner glow */}
                         <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#368b82]/5 rounded-full blur-xl group-hover:bg-[#368b82]/20 transition-all duration-300 pointer-events-none" />
 
                         <div>
@@ -152,7 +227,6 @@ export default async function IndustryDetailPage({ params }) {
                         key={idx}
                         className="group relative bg-white border border-gray-200/90 rounded-2xl p-6 shadow-xs hover:shadow-[0_18px_36px_-8px_rgba(54,139,130,0.2)] hover:border-[#368b82] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
                       >
-                        {/* Ambient corner glow */}
                         <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#368b82]/5 rounded-full blur-xl group-hover:bg-[#368b82]/20 transition-all duration-300 pointer-events-none" />
 
                         <div>
@@ -177,7 +251,7 @@ export default async function IndustryDetailPage({ params }) {
               </div>
             )}
 
-            {/* 4. Section 1 (Feature Showcase 1) with Elevated Visuals */}
+            {/* 4. Section 1 (Feature Showcase 1) */}
             {data.section1 && data.section1.title && (
               <div className="relative bg-gradient-to-br from-white via-[#fcfdfe] to-[#edf7f6]/50 border border-gray-200/90 rounded-3xl p-7 sm:p-10 shadow-xs hover:shadow-xl hover:border-[#368b82]/40 transition-all duration-300 overflow-hidden space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
@@ -213,7 +287,7 @@ export default async function IndustryDetailPage({ params }) {
               </div>
             )}
 
-            {/* 5. Section 2 (Feature Showcase 2) with Elevated Visuals */}
+            {/* 5. Section 2 (Feature Showcase 2) */}
             {data.section2 && data.section2.title && (
               <div className="relative bg-gradient-to-bl from-[#edf7f6]/40 via-white to-gray-50/80 border border-gray-200/90 rounded-3xl p-7 sm:p-10 shadow-xs hover:shadow-xl hover:border-[#368b82]/40 transition-all duration-300 overflow-hidden space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
@@ -250,7 +324,7 @@ export default async function IndustryDetailPage({ params }) {
             )}
           </div>
 
-          {/* Right Sidebar Area (4 Cols) with Enhanced Cards */}
+          {/* Right Sidebar Area (4 Cols) */}
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white border border-gray-200/90 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow space-y-5 sticky top-24">
               <div className="border-b border-gray-100 pb-3 flex items-center justify-between">
@@ -258,14 +332,14 @@ export default async function IndustryDetailPage({ params }) {
                   Industries We Serve
                 </h3>
                 <span className="text-[11px] font-bold text-[#368b82] bg-[#edf7f6] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  21 Sectors
+                  {allIndustries.length} Sectors
                 </span>
               </div>
 
               {/* Enhanced Scrollable List */}
               <div className="max-h-[580px] overflow-y-auto pr-1 space-y-1 scrollbar-thin">
                 {allIndustries.map((item, idx) => {
-                  const isActive = item.href.endsWith(`/${slug}`);
+                  const isActive = item.href.endsWith(`/${cleanSlug}`);
                   return (
                     <Link
                       key={idx}
@@ -330,9 +404,8 @@ export default async function IndustryDetailPage({ params }) {
         </div>
       </div>
 
-      {/* Coffee Section & Interactive Form (Full width container at bottom) */}
+      {/* Coffee Section & Interactive Form */}
       <IndustryCoffeeSection industryName={industry.name} />
     </div>
   );
 }
-

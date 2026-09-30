@@ -761,12 +761,46 @@ export function BlogManagementTab({
                         </div>
                       </td>
 
-                      {/* Status Badge */}
+                      {/* Status & SEO Badge */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/90">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span>Published</span>
-                        </span>
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                              blog.status === "draft"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200/90"
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                blog.status === "draft"
+                                  ? "bg-amber-500"
+                                  : "bg-emerald-500 animate-pulse"
+                              }`}
+                            />
+                            <span className="capitalize">{blog.status || "Published"}</span>
+                          </span>
+
+                          <div className="flex items-center gap-1">
+                            {blog.isRobotsIndex === false ? (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
+                                Noindex
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                Index
+                              </span>
+                            )}
+                            {blog.includeInSitemap !== false && (
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#edf7f6] text-[#368b82] border border-[#368b82]/30"
+                                title="XML Sitemap Active"
+                              >
+                                Sitemap
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Actions Buttons */}

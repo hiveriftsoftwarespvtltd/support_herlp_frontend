@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { blogPosts as fallbackBlogData } from "@/data/blogData";
 import { softwareData as fallbackSoftwareData } from "@/data/navigationData";
-import { blogApi, softwareApi, inquiryApi, consultationApi } from "@/api";
+import { blogApi, softwareApi, serviceApi, inquiryApi, consultationApi } from "@/api";
+import { socialLinkApi } from "@/api/socialLinkApi";
 import Swal from "sweetalert2";
 import {
   AdminLogin,
@@ -14,8 +15,11 @@ import {
   BlogModal,
   SoftwareManagementTab,
   SoftwareModal,
+  ServiceManagementTab,
+  ServiceModal,
   ConsultationsTab,
   InquiriesTab,
+  SocialLinksTab,
   SettingsTab,
 } from "@/components/Admin";
 
@@ -23,8 +27,10 @@ const VALID_TABS = [
   "overview",
   "blog",
   "software",
+  "services",
   "inquiries",
   "consultations",
+  "social-links",
   "settings",
 ];
 
@@ -73,9 +79,16 @@ export default function AdminPage() {
   const [isSoftwareModalOpen, setIsSoftwareModalOpen] = useState(false);
   const [editingSoftware, setEditingSoftware] = useState(null);
 
-  // Inquiries & Consultations State
+  // Services Management State
+  const [services, setServices] = useState([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+
+  // Inquiries, Consultations & Social Links State
   const [inquiriesCount, setInquiriesCount] = useState(0);
   const [consultationsCount, setConsultationsCount] = useState(0);
+  const [socialLinksCount, setSocialLinksCount] = useState(0);
 
   // Fetch blogs from live MongoDB Backend API
   const fetchBlogs = useCallback(async () => {
@@ -107,12 +120,28 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Fetch inquiries & consultations count from live MongoDB Backend API
+  // Fetch services from live MongoDB Backend API
+  const fetchServices = useCallback(async () => {
+    try {
+      setIsLoadingServices(true);
+      const response = await serviceApi.getServices();
+      if (response?.data) {
+        setServices(response.data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch services from API:", err.message);
+    } finally {
+      setIsLoadingServices(false);
+    }
+  }, []);
+
+  // Fetch inquiries, consultations & social links count from live MongoDB Backend API
   const fetchCounts = useCallback(async () => {
     try {
-      const [inqRes, consRes] = await Promise.allSettled([
+      const [inqRes, consRes, socRes] = await Promise.allSettled([
         inquiryApi.getInquiryStats(),
         consultationApi.getConsultationStats(),
+        socialLinkApi.getSocialLinks(),
       ]);
 
       if (inqRes.status === "fulfilled" && inqRes.value?.data?.total !== undefined) {
@@ -120,6 +149,9 @@ export default function AdminPage() {
       }
       if (consRes.status === "fulfilled" && consRes.value?.data?.total !== undefined) {
         setConsultationsCount(consRes.value.data.total);
+      }
+      if (socRes.status === "fulfilled" && socRes.value?.data) {
+        setSocialLinksCount(socRes.value.data.length);
       }
     } catch (err) {
       // Counts may be empty initially or token pending
@@ -158,15 +190,17 @@ export default function AdminPage() {
 
     fetchBlogs();
     fetchSoftwares();
+    fetchServices();
     fetchCounts();
 
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [fetchBlogs, fetchSoftwares, fetchCounts]);
+  }, [fetchBlogs, fetchSoftwares, fetchServices, fetchCounts]);
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
     fetchBlogs();
     fetchSoftwares();
+    fetchServices();
     fetchCounts();
   };
 
@@ -199,18 +233,63 @@ export default function AdminPage() {
     try {
       const data = new FormData();
       data.append("title", formData.title);
+      if (formData.subtitle) data.append("subtitle", formData.subtitle);
+      if (formData.slug) data.append("slug", formData.slug);
       data.append("category", formData.category);
       data.append("excerpt", formData.excerpt);
       data.append("readTime", formData.readTime || "5 min read");
       data.append("authorName", formData.author || "Support Help");
       data.append("authorRole", formData.authorRole || "Certified Cloud Accounting Specialist");
+      if (formData.authorBio) data.append("authorBio", formData.authorBio);
+      if (formData.publishedAt) data.append("publishedAt", formData.publishedAt);
       data.append("featured", formData.featured ? "true" : "false");
+      data.append("status", formData.status || "published");
+
+      // Media & Alt Text
+      if (formData.coverImageUrl) data.append("coverImage", formData.coverImageUrl);
+      if (formData.imageAltText) data.append("imageAltText", formData.imageAltText);
+
+      // SEO & Meta
+      if (formData.metaTitle) data.append("metaTitle", formData.metaTitle);
+      if (formData.metaDescription) data.append("metaDescription", formData.metaDescription);
+      if (formData.canonicalUrl) data.append("canonicalUrl", formData.canonicalUrl);
+      data.append("isRobotsIndex", formData.isRobotsIndex ? "true" : "false");
+      data.append("isRobotsFollow", formData.isRobotsFollow ? "true" : "false");
+
+      // Social Share
+      if (formData.ogTitle) data.append("ogTitle", formData.ogTitle);
+      if (formData.ogDescription) data.append("ogDescription", formData.ogDescription);
+      if (formData.ogImage) data.append("ogImage", formData.ogImage);
+      if (formData.twitterCard) data.append("twitterCard", formData.twitterCard);
+
+      // TOC & Links
+      if (formData.tableOfContents) {
+        data.append("tableOfContents", JSON.stringify(formData.tableOfContents));
+      }
+      if (formData.internalLinks) {
+        data.append("internalLinks", JSON.stringify(formData.internalLinks));
+      }
+      if (formData.externalLinks) {
+        data.append("externalLinks", JSON.stringify(formData.externalLinks));
+      }
+
+      // Schema & XML Sitemap
+      if (formData.schemaMarkup) data.append("schemaMarkup", formData.schemaMarkup);
+      data.append("includeInSitemap", formData.includeInSitemap ? "true" : "false");
+      if (formData.sitemapPriority !== undefined) {
+        data.append("sitemapPriority", String(formData.sitemapPriority));
+      }
+      if (formData.sitemapChangeFreq) {
+        data.append("sitemapChangeFreq", formData.sitemapChangeFreq);
+      }
 
       if (formData.tags) {
         data.append("tags", formData.tags);
       }
 
-      if (formData.contentParagraph) {
+      if (formData.content && Array.isArray(formData.content) && formData.content.length > 0) {
+        data.append("content", JSON.stringify(formData.content));
+      } else if (formData.contentParagraph) {
         data.append(
           "content",
           JSON.stringify([
@@ -372,6 +451,121 @@ export default function AdminPage() {
     }
   };
 
+  // --- SERVICE ACTIONS ---
+  const handleOpenCreateServiceModal = () => {
+    setEditingService(null);
+    setIsServiceModalOpen(true);
+  };
+
+  const handleOpenEditServiceModal = (service) => {
+    setEditingService(service);
+    setIsServiceModalOpen(true);
+  };
+
+  const handleSaveService = async (
+    payload,
+    currentEditingService,
+    showcase1ImageFile,
+    showcase2ImageFile
+  ) => {
+    try {
+      const data = new FormData();
+      data.append("title", payload.title);
+      if (payload.slug) data.append("slug", payload.slug);
+      data.append("heroTitle", payload.heroTitle || payload.title.toUpperCase());
+      if (payload.heroSubtitle !== undefined) data.append("heroSubtitle", payload.heroSubtitle);
+      if (payload.category) data.append("category", payload.category);
+      if (payload.shortDescription) data.append("shortDescription", payload.shortDescription);
+      data.append("displayOrder", String(payload.displayOrder || 1));
+      data.append("isPublished", payload.isPublished ? "true" : "false");
+      data.append("status", payload.status || "published");
+
+      // Intro Section
+      if (payload.introBadge) data.append("introBadge", payload.introBadge);
+      if (payload.introHeading) data.append("introHeading", payload.introHeading);
+      data.append("introParagraphs", JSON.stringify(payload.introParagraphs || []));
+
+      // Solutions Section
+      if (payload.solutionsBadge) data.append("solutionsBadge", payload.solutionsBadge);
+      if (payload.solutionsTitle) data.append("solutionsTitle", payload.solutionsTitle);
+      data.append("leftCol", JSON.stringify(payload.leftCol || []));
+      data.append("rightCol", JSON.stringify(payload.rightCol || []));
+
+      // Showcase 1
+      if (payload.showcase1Badge) data.append("showcase1Badge", payload.showcase1Badge);
+      if (payload.showcase1Title) data.append("showcase1Title", payload.showcase1Title);
+      if (payload.showcase1Description) data.append("showcase1Description", payload.showcase1Description);
+      data.append("showcase1Checklist", JSON.stringify(payload.showcase1Checklist || []));
+      if (payload.showcase1ImageUrl) data.append("showcase1Image", payload.showcase1ImageUrl);
+      if (showcase1ImageFile) data.append("showcase1Image", showcase1ImageFile);
+
+      // Showcase 2
+      if (payload.showcase2Badge) data.append("showcase2Badge", payload.showcase2Badge);
+      if (payload.showcase2Title) data.append("showcase2Title", payload.showcase2Title);
+      data.append("showcase2Paragraphs", JSON.stringify(payload.showcase2Paragraphs || []));
+      if (payload.showcase2ImageUrl) data.append("showcase2Image", payload.showcase2ImageUrl);
+      if (showcase2ImageFile) data.append("showcase2Image", showcase2ImageFile);
+
+      // Why & SEO
+      if (payload.whyTitle) data.append("whyTitle", payload.whyTitle);
+      data.append("whyReasons", JSON.stringify(payload.whyReasons || []));
+      if (payload.whyClosingNote) data.append("whyClosingNote", payload.whyClosingNote);
+      if (payload.metaTitle) data.append("metaTitle", payload.metaTitle);
+      if (payload.metaDescription) data.append("metaDescription", payload.metaDescription);
+      if (payload.canonicalUrl) data.append("canonicalUrl", payload.canonicalUrl);
+
+      const targetId = currentEditingService?._id || currentEditingService?.slug;
+      if (targetId) {
+        await serviceApi.updateService(targetId, data);
+        Swal.fire({
+          icon: "success",
+          title: "Service Updated!",
+          text: `"${payload.title}" updated successfully in database, header menu, and public page.`,
+          timer: 1600,
+          showConfirmButton: false,
+          iconColor: "#368b82",
+        });
+      } else {
+        await serviceApi.createService(data);
+        Swal.fire({
+          icon: "success",
+          title: "Service Created!",
+          text: `"${payload.title}" added to database and Header Services dropdown!`,
+          timer: 1600,
+          showConfirmButton: false,
+          iconColor: "#368b82",
+        });
+      }
+
+      setIsServiceModalOpen(false);
+      await fetchServices();
+    } catch (err) {
+      console.error("Save service error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Failed to Save Service",
+        text: err.message || "An error occurred while saving the service.",
+        confirmButtonColor: "#368b82",
+      });
+      throw err;
+    }
+  };
+
+  const handleDeleteService = async (service) => {
+    try {
+      const targetId = service?._id || service?.slug;
+      if (targetId) {
+        await serviceApi.deleteService(targetId);
+      } else {
+        setServices((prev) => prev.filter((s) => s.slug !== service.slug));
+      }
+      await fetchServices();
+    } catch (err) {
+      console.error("Delete service error:", err);
+      throw err;
+    }
+  };
+
   // If unauthenticated, show isolated AdminLogin component
   if (!isLoggedIn) {
     return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
@@ -386,8 +580,10 @@ export default function AdminPage() {
         setActiveTab={setActiveTab}
         blogsCount={blogs.length}
         softwareCount={softwares.length}
+        servicesCount={services.length}
         inquiriesCount={inquiriesCount}
         consultationsCount={consultationsCount}
+        socialLinksCount={socialLinksCount}
         onLogout={handleLogout}
         isMobileOpen={isMobileSidebarOpen}
         setIsMobileOpen={setIsMobileSidebarOpen}
@@ -399,7 +595,9 @@ export default function AdminPage() {
         <AdminHeader
           activeTab={activeTab}
           onOpenCreateModal={
-            activeTab === "software"
+            activeTab === "services"
+              ? handleOpenCreateServiceModal
+              : activeTab === "software"
               ? handleOpenCreateSoftwareModal
               : handleOpenCreateModal
           }
@@ -441,9 +639,23 @@ export default function AdminPage() {
           />
         )}
 
+        {activeTab === "services" && (
+          <ServiceManagementTab
+            services={services}
+            isLoading={isLoadingServices}
+            onOpenCreateModal={handleOpenCreateServiceModal}
+            onOpenEditModal={handleOpenEditServiceModal}
+            onDeleteService={handleDeleteService}
+          />
+        )}
+
         {activeTab === "inquiries" && <InquiriesTab />}
 
         {activeTab === "consultations" && <ConsultationsTab />}
+
+        {activeTab === "social-links" && (
+          <SocialLinksTab onStatsUpdate={(cnt) => setSocialLinksCount(cnt)} />
+        )}
 
         {activeTab === "settings" && <SettingsTab />}
       </main>
@@ -462,6 +674,14 @@ export default function AdminPage() {
         onClose={() => setIsSoftwareModalOpen(false)}
         editingSoftware={editingSoftware}
         onSaveSoftware={handleSaveSoftware}
+      />
+
+      {/* 5. Service Create/Edit Modal */}
+      <ServiceModal
+        isOpen={isServiceModalOpen}
+        onClose={() => setIsServiceModalOpen(false)}
+        editingService={editingService}
+        onSaveService={handleSaveService}
       />
     </div>
   );

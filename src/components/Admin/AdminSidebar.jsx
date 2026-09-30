@@ -14,7 +14,9 @@ import {
   Menu,
   X,
   Cpu,
+  Briefcase,
   MessageSquare,
+  Share2,
 } from "lucide-react";
 
 export function AdminSidebar({
@@ -22,8 +24,10 @@ export function AdminSidebar({
   setActiveTab,
   blogsCount,
   softwareCount = 0,
+  servicesCount = 0,
   inquiriesCount = 0,
   consultationsCount = 0,
+  socialLinksCount = 0,
   onLogout,
   isMobileOpen,
   setIsMobileOpen,
@@ -67,6 +71,12 @@ export function AdminSidebar({
       badge: softwareCount,
     },
     {
+      id: "services",
+      label: "Services",
+      icon: Briefcase,
+      badge: servicesCount,
+    },
+    {
       id: "inquiries",
       label: "Inquiries / Leads",
       icon: MessageSquare,
@@ -77,6 +87,12 @@ export function AdminSidebar({
       label: "Consultations",
       icon: Calendar,
       badge: consultationsCount,
+    },
+    {
+      id: "social-links",
+      label: "Social Media Links",
+      icon: Share2,
+      badge: socialLinksCount,
     },
     { id: "settings", label: "Settings", icon: Settings },
   ];

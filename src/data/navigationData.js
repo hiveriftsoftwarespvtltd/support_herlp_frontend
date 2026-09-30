@@ -12,9 +12,12 @@ export const contactInfo = {
   consultationUrl: "/free-consultation",
   announcementText: "Kick Start Your Accounting Journey, We Help You to Start from Scratch",
   socialLinks: {
-    facebook: "https://www.facebook.com",
-    twitter: "https://twitter.com",
-    linkedin: "https://www.linkedin.com",
+    facebook: "",
+    twitter: "",
+    linkedin: "",
+    instagram: "",
+    youtube: "",
+    whatsapp: "",
   },
 };
 

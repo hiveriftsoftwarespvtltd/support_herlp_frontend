@@ -12,28 +12,68 @@ import {
   aboutUsData,
   staticNavLinks,
 } from "@/data/navigationData";
-import { softwareApi } from "@/api";
+import { softwareApi, serviceApi } from "@/api";
 
 export function MobileNavigationDrawer({ isOpen, onClose }) {
   const [openSection, setOpenSection] = useState(null);
   const [softwares, setSoftwares] = useState(softwareData);
+  const [industriesList, setIndustriesList] = useState(
+    industriesData.flatMap((col) => col.items)
+  );
+  const [servicesList, setServicesList] = useState(
+    servicesData.flatMap((col) => col.items)
+  );
 
   React.useEffect(() => {
-    async function loadSoftwares() {
+    async function loadData() {
       try {
-        const res = await softwareApi.getSoftwares({ isPublished: true });
-        if (res?.data && res.data.length > 0) {
+        const [softRes, servRes] = await Promise.allSettled([
+          softwareApi.getSoftwares({ isPublished: true }),
+          serviceApi.getServices({ isPublished: true }),
+        ]);
+
+        if (softRes.status === "fulfilled" && softRes.value?.data?.length > 0) {
           setSoftwares(
-            res.data.map((item) => ({
+            softRes.value.data.map((item) => ({
               name: item.name,
               href: `/software-expertise/${(item.slug || "").replace(/^\/+/, "")}`,
               desc: item.desc || `Certified ${item.name} Bookkeeping`,
             }))
           );
         }
+
+        if (servRes.status === "fulfilled" && servRes.value?.data?.length > 0) {
+          const allServ = servRes.value.data;
+          const ind = allServ.filter(
+            (i) =>
+              i.category === "Industry Services" ||
+              i.category === "Industry Accounting" ||
+              (!i.category?.includes("Core") && !i.category?.includes("Specialized"))
+          );
+          if (ind.length > 0) {
+            setIndustriesList(
+              ind.map((item) => ({
+                name: item.title,
+                href: `/industry/${(item.slug || "").replace(/^\/+/, "")}`,
+              }))
+            );
+          }
+
+          const core = allServ.filter(
+            (i) => i.category === "Core Services" || i.category === "Specialized Services"
+          );
+          if (core.length > 0) {
+            setServicesList(
+              core.map((item) => ({
+                name: item.title,
+                href: `/services/${(item.slug || "").replace(/^\/+/, "")}`,
+              }))
+            );
+          }
+        }
       } catch (err) {}
     }
-    loadSoftwares();
+    loadData();
   }, []);
 
   if (!isOpen) return null;
@@ -82,7 +122,7 @@ export function MobileNavigationDrawer({ isOpen, onClose }) {
             </button>
             {openSection === "industries" && (
               <div className="bg-gray-50/80 px-5 py-2 space-y-1 text-[14px]">
-                {industriesData.flatMap((col) => col.items).map((item, idx) => (
+                {industriesList.map((item, idx) => (
                   <Link
                     key={idx}
                     href={item.href}
@@ -111,7 +151,7 @@ export function MobileNavigationDrawer({ isOpen, onClose }) {
             </button>
             {openSection === "services" && (
               <div className="bg-gray-50/80 px-5 py-2 space-y-1 text-[14px]">
-                {servicesData.flatMap((col) => col.items).map((item, idx) => (
+                {servicesList.map((item, idx) => (
                   <Link
                     key={idx}
                     href={item.href}
